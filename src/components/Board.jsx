@@ -43,7 +43,8 @@ export default function Board() {
   const [blackTime, setBlackTime] = useState(5 * 60)
   const [matchPoints, setMatchPoints] = useState(0)
   const [winnerByTime, setWinnerByTime] = useState(null)
-
+  const [fenHistory, setFenHistory] = useState([new Chess().fen()])
+  const [showHistory, setShowHistory] = useState(false)
   const fenRef = useRef(fen)
   const resultRecordedRef = useRef(false)
 
@@ -126,7 +127,9 @@ export default function Board() {
             const move = gameCopy.move(bestMove, { sloppy: true })
             if (move) {
               applyCaptureScore(move)
-              setFen(gameCopy.fen())
+              const aiFen = gameCopy.fen()
+              setFen(aiFen)
+              setFenHistory((prev) => [...prev, aiFen])
               setHistory((prev) => [...prev, move])
               awardResultIfFinished(gameCopy)
               setAiThinking(false)
@@ -250,6 +253,7 @@ export default function Board() {
         setSelectedSquare(null)
         setLegalSquares([])
         setFen(newFen)
+        setFenHistory((prev) => [...prev, newFen])
         applyCaptureScore(move)
         setHistory((prev) => [...prev, move])
         const gameEnded = awardResultIfFinished(game)
@@ -269,10 +273,10 @@ export default function Board() {
       setLegalSquares([])
     }
   }
-
   const startGame = () => {
     const initialSeconds = timerMinutes * 60
     setFen(new Chess().fen())
+    setFenHistory([new Chess().fen()])
     setSelectedSquare(null)
     setLegalSquares([])
     setHistory([])
@@ -284,6 +288,32 @@ export default function Board() {
     setBlackTime(initialSeconds)
     resultRecordedRef.current = false
     setGameStarted(true)
+  }
+
+  const undoLastMove = () => {
+    if (fenHistory.length <= 1 || aiThinking) return
+    const previousHistory = fenHistory.slice(0, -1)
+    setFen(previousHistory[previousHistory.length - 1])
+    setFenHistory(previousHistory)
+    setSelectedSquare(null)
+    setLegalSquares([])
+    setWinnerByTime(null)
+    resultRecordedRef.current = false
+    setAiThinking(false)
+  }
+
+  const resign = () => {
+    if (!gameStarted || isGameOver) return
+    setWinnerByTime('b')
+    setAiThinking(false)
+    if (!resultRecordedRef.current) {
+      applyMatchPoints('loss')
+      resultRecordedRef.current = true
+    }
+  }
+
+  const rematch = () => {
+    startGame()
   }
 
   const boardRows = useMemo(() => {
@@ -346,7 +376,17 @@ export default function Board() {
         </div>
       ) : (
         <>
-          <div className="game-controls" />
+          <div className="game-controls">
+            <button type="button" onClick={undoLastMove}>
+              Voltar lance
+            </button>
+            <button type="button" onClick={resign}>
+              Desistir
+            </button>
+            <button type="button" onClick={rematch}>
+              Revanche
+            </button>
+          </div>
           <div className="board-wrapper">
             <section className="board-panel">
               <div className="board-grid">
@@ -411,18 +451,28 @@ export default function Board() {
               </div>
 
               <div className="history-card">
-                <h2>Histórico</h2>
-                {history.length === 0 ? (
-                  <p>Nenhum movimento feito ainda.</p>
-                ) : (
-                  <ol>
-                    {history.map((move, index) => (
-                      <li key={`${move.from}-${move.to}-${index}`}>
-                        {move.color === 'w' ? `${Math.ceil((index + 1) / 2)}. ` : ''}
-                        {move.san}
-                      </li>
-                    ))}
-                  </ol>
+                <button 
+                  type="button"
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="toggle-history-btn"
+                >
+                  {showHistory ? 'Esconder Histórico' : 'Ver Histórico'}
+                </button>
+                {showHistory && (
+                  <div className="history-content">
+                    {history.length === 0 ? (
+                      <p>Nenhum movimento feito ainda.</p>
+                    ) : (
+                      <ol>
+                        {history.map((move, index) => (
+                          <li key={`${move.from}-${move.to}-${index}`}>
+                            {move.color === 'w' ? `${Math.ceil((index + 1) / 2)}. ` : ''}
+                            {move.san}
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                  </div>
                 )}
               </div>
             </section>
