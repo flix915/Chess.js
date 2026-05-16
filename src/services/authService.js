@@ -5,7 +5,9 @@ export async function registerUser(email, password, displayName) {
     email,
     password,
     options: {
-      data: { display_name: displayName },
+      data: {
+        display_name: displayName,
+      },
     },
   })
   if (error) throw error
@@ -13,26 +15,12 @@ export async function registerUser(email, password, displayName) {
 }
 
 export async function loginUser(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) throw error
-  return data.user
-}
-
-export async function loginWithProvider(provider, redirectTo = window.location.origin) {
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: { redirectTo },
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
   })
   if (error) throw error
-  return data
-}
-
-export async function loginWithGoogle(redirectTo) {
-  return loginWithProvider('google', redirectTo)
-}
-
-export async function loginWithGithub(redirectTo) {
-  return loginWithProvider('github', redirectTo)
+  return data.user
 }
 
 export async function logoutUser() {
@@ -41,26 +29,21 @@ export async function logoutUser() {
 }
 
 export function listenAuthState(callback) {
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    callback(session?.user ?? null)
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    callback(session?.user || null)
   })
-  return () => data.subscription.unsubscribe()
-}
-
-export async function getCurrentUser() {
-  const { data, error } = await supabase.auth.getUser()
-  if (error) throw error
-  return data.user
-}
-
-export async function getCurrentSession() {
-  const { data, error } = await supabase.auth.getSession()
-  if (error) throw error
-  return data.session
+  return () => {
+    if (data && data.subscription) {
+      data.subscription.unsubscribe()
+    }
+  }
 }
 
 export async function removeCurrentUser() {
-  throw new Error(
-    'Exclusão de conta exige uma Edge Function com a service_role key. Implemente em supabase/functions/delete-user e chame via supabase.functions.invoke.',
-  )
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError || !session?.user) {
+    throw new Error('Nenhum usuário autenticado')
+  }
+  
+  throw new Error('A exclusão de usuário via client no Supabase requer uma configuração específica (Edge Function ou RPC). Contate o administrador.')
 }
