@@ -513,3 +513,120 @@ body {
   box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
   transform: translateY(-1px);
 }
+
+/* Modo de Jogo e Configuração Multijogador Local */
+.mode-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.08);
+}
+
+.mode-tab {
+  flex: 1;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.95rem;
+}
+
+.mode-tab:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.mode-tab.active {
+  background: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.names-control {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 320px;
+  margin: 8px 0 20px;
+  text-align: left;
+}
+
+.names-control .input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.names-control label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.names-control input {
+  padding: 11px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.6);
+  color: #ffffff;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.names-control input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.checkbox-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: #cbd5e1;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 6px;
+  padding: 4px 0;
+}
+
+.checkbox-control input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+/* Board orientation and controls */
+.flip-button {
+  background: rgba(148, 163, 184, 0.1) !important;
+  color: #cbd5e1 !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  transition: all 0.2s !important;
+}
+
+.flip-button:hover {
+  background: rgba(148, 163, 184, 0.2) !important;
+  color: #ffffff !important;
+}
+
+/* Adaptations to score blocks */
+.white-score-block {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.black-score-block {
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
