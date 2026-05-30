@@ -46,6 +46,13 @@ export default function useChessGame() {
   const isGameOver = useMemo(() => game.isGameOver() || winnerByTime !== null, [game, winnerByTime])
   const turn = useMemo(() => game.turn(), [game])
 
+  const displayedFlipped = useMemo(() => {
+    if (gameMode === 'local' && autoFlip && gameStarted && !isGameOver) {
+      return game.turn() === 'b'
+    }
+    return isFlipped
+  }, [gameMode, autoFlip, gameStarted, isGameOver, game, isFlipped])
+
   const applyCaptureScore = useCallback((move) => {
     if (!move || !move.captured) return
     const value = pieceValues[move.captured] || 0
@@ -122,11 +129,7 @@ export default function useChessGame() {
   }, [applyMatchPoints, game, gameStarted, isGameOver])
 
   
-  useEffect(() => {
-    if (gameMode === 'local' && autoFlip && gameStarted && !isGameOver) {
-      setIsFlipped(game.turn() === 'b')
-    }
-  }, [gameMode, autoFlip, gameStarted, isGameOver, fen, game])
+
 
   const startGame = useCallback((settings = {}) => {
     const mode = settings.gameMode ?? gameMode
@@ -341,11 +344,11 @@ export default function useChessGame() {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
     const rows = []
 
-    const rankSequence = isFlipped
+    const rankSequence = displayedFlipped
       ? [1, 2, 3, 4, 5, 6, 7, 8]
       : [8, 7, 6, 5, 4, 3, 2, 1]
 
-    const fileSequence = isFlipped
+    const fileSequence = displayedFlipped
       ? [7, 6, 5, 4, 3, 2, 1, 0]
       : [0, 1, 2, 3, 4, 5, 6, 7]
 
@@ -360,7 +363,7 @@ export default function useChessGame() {
     }
 
     return rows
-  }, [game, isFlipped])
+  }, [game, displayedFlipped])
 
   return {
     fen,
@@ -376,7 +379,7 @@ export default function useChessGame() {
     matchPoints,
     winnerByTime,
     aiThinking,
-    isFlipped,
+    isFlipped: displayedFlipped,
     autoFlip,
     isGameOver,
     turn,

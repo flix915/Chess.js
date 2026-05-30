@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Link, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import Game from './pages/Game'
 import Auth from './pages/Auth'
 import { listenAuthState, logoutUser } from './services/authService'
