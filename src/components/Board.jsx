@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useChessGame from '../hooks/useChessGame'
 import useStockfishAI from '../hooks/useStockfishAI'
 
@@ -43,7 +43,6 @@ export default function Board() {
     whitePlayerName,
     blackPlayerName,
     setAiThinking,
-    setIsFlipped,
     setAutoFlip,
     startGame,
     handleSquareClick,
@@ -63,6 +62,49 @@ export default function Board() {
   const [setupAutoFlip, setSetupAutoFlip] = useState(false)
 
   const [showHistory, setShowHistory] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const boardRef = useRef(null)
+  const previousFlipped = useRef(isFlipped)
+  const rotateTimeout = useRef(null)
+
+  useEffect(() => {
+    if (previousFlipped.current !== isFlipped && boardRef.current) {
+      boardRef.current.querySelector('.board-grid')?.classList.add('rotating')
+      rotateTimeout.current = window.setTimeout(() => {
+        boardRef.current.querySelector('.board-grid')?.classList.remove('rotating')
+      }, 1000)
+      previousFlipped.current = isFlipped
+    }
+
+    return () => {
+      if (rotateTimeout.current) {
+        window.clearTimeout(rotateTimeout.current)
+      }
+    }
+  }, [isFlipped])
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(document.fullscreenElement === boardRef.current)
+    }
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange)
+    }
+  }, [])
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement && boardRef.current) {
+        await boardRef.current.requestFullscreen()
+      } else if (document.fullscreenElement) {
+        await document.exitFullscreen()
+      }
+    } catch (error) {
+      console.error('Erro ao alternar tela cheia', error)
+    }
+  }
 
   // Plug Stockfish AI
   useStockfishAI({
@@ -194,20 +236,18 @@ export default function Board() {
             <button type="button" onClick={resign}>
               Desistir
             </button>
-            {gameMode === 'local' && (
-              <button 
-                type="button" 
-                className="flip-button"
-                onClick={() => setIsFlipped(!isFlipped)}
-              >
-                Inverter Tabuleiro
-              </button>
-            )}
             <button type="button" onClick={rematch}>
               Revanche
             </button>
+            <button
+              type="button"
+              className="fullscreen-button"
+              onClick={toggleFullscreen}
+            >
+              {isFullscreen ? 'Sair da Tela Cheia' : 'Tela Cheia'}
+            </button>
           </div>
-          <div className="board-wrapper">
+          <div className="board-wrapper" ref={boardRef}>
             <section className="board-panel">
               <div className="board-grid">
                 {boardRows.map((rank, rankIndex) => (
