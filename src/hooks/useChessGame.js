@@ -29,6 +29,7 @@ export default function useChessGame() {
   const [blackTime, setBlackTime] = useState(5 * 60)
   const [matchPoints, setMatchPoints] = useState(0)
   const [winnerByTime, setWinnerByTime] = useState(null)
+  const [resultReason, setResultReason] = useState(null)
   const [aiThinking, setAiThinking] = useState(false)
   
   
@@ -76,6 +77,11 @@ export default function useChessGame() {
     if (resultRecordedRef.current) return true
 
     if (position.isCheckmate()) {
+      // determine winner color: side NOT to move
+      const winnerColor = position.turn() === 'b' ? 'w' : 'b'
+      setWinnerByTime(winnerColor)
+      setResultReason('checkmate')
+      // preserve previous match points behavior (from white perspective)
       const playerWon = position.turn() === 'b'
       applyMatchPoints(playerWon ? 'win' : 'loss')
       resultRecordedRef.current = true
@@ -101,6 +107,7 @@ export default function useChessGame() {
           const next = Math.max(0, prev - 1)
           if (next === 0) {
             setWinnerByTime('b')
+            setResultReason('timeout')
             setAiThinking(false)
             if (!resultRecordedRef.current) {
               applyMatchPoints('loss')
@@ -114,6 +121,7 @@ export default function useChessGame() {
           const next = Math.max(0, prev - 1)
           if (next === 0) {
             setWinnerByTime('w')
+            setResultReason('timeout')
             setAiThinking(false)
             if (!resultRecordedRef.current) {
               applyMatchPoints('win')
@@ -156,6 +164,7 @@ export default function useChessGame() {
     setWhiteScore(0)
     setBlackScore(0)
     setWinnerByTime(null)
+    setResultReason(null)
     setAiThinking(false)
     setWhiteTime(initialSeconds)
     setBlackTime(initialSeconds)
@@ -164,7 +173,7 @@ export default function useChessGame() {
     setGameStarted(true)
   }, [gameMode, aiRating, timerMinutes])
 
-  const handleSquareClick = useCallback((square) => {
+  const handleSquareClick = useCallback((square, promotion = 'q') => {
     if (!gameStarted || isGameOver) return
 
     // If game mode is vs AI, human can only move during white's turn
@@ -188,7 +197,7 @@ export default function useChessGame() {
 
     // Making a move
     if (selectedSquare) {
-      const move = game.move({ from: selectedSquare, to: square, promotion: 'q' })
+      const move = game.move({ from: selectedSquare, to: square, promotion })
       if (move) {
         const newFen = game.fen()
         setSelectedSquare(null)
@@ -230,6 +239,11 @@ export default function useChessGame() {
     setAiThinking(false)
   }, [game, gameStarted, isGameOver, gameMode, applyCaptureScore, awardResultIfFinished])
 
+  const getLegalMoves = useCallback((square) => {
+    if (!square) return []
+    return game.moves({ square, verbose: true })
+  }, [game])
+
   const undoLastMove = useCallback(() => {
     if (aiThinking) return
 
@@ -247,6 +261,7 @@ export default function useChessGame() {
     setSelectedSquare(null)
     setLegalSquares([])
     setWinnerByTime(null)
+    setResultReason(null)
     resultRecordedRef.current = false
     setAiThinking(false)
 
@@ -294,6 +309,7 @@ export default function useChessGame() {
     const activeTurn = game.turn()
     // The resigning color loses, so the winner is the opposite side
     setWinnerByTime(activeTurn === 'w' ? 'b' : 'w')
+    setResultReason('resign')
     setAiThinking(false)
     if (!resultRecordedRef.current) {
       applyMatchPoints(activeTurn === 'w' ? 'loss' : 'win')
@@ -313,21 +329,30 @@ export default function useChessGame() {
   }, [])
 
   const status = useMemo(() => {
-    if (winnerByTime === 'w') {
-      return `Tempo esgotado das pretas — ${whitePlayerName} venceu`
+    // Structured end-of-game messages when we have a recorded reason
+    if (resultReason === 'timeout' && winnerByTime) {
+      if (winnerByTime === 'w') return 'Brancas venceram por apuro no relógio das pretas'
+      return 'Pretas venceram por apuro no relógio das brancas'
     }
 
-    if (winnerByTime === 'b') {
-      return `Tempo esgotado das brancas — ${blackPlayerName} venceu`
+    if (resultReason === 'resign' && winnerByTime) {
+      if (winnerByTime === 'w') return 'Brancas venceram por desistência'
+      return 'Pretas venceram por desistência'
     }
 
+    if (resultReason === 'checkmate' && winnerByTime) {
+      if (winnerByTime === 'w') return 'Brancas venceram por xeque mate'
+      return 'Pretas venceram por xeque mate'
+    }
+
+    // Fallback: if game is checkmate but reason wasn't set, derive winner
     if (game.isCheckmate()) {
-      return game.turn() === 'w'
-        ? `Xeque-mate — ${blackPlayerName} venceu`
-        : `Xeque-mate — ${whitePlayerName} venceu`
+      const winner = game.turn() === 'b' ? 'w' : 'b'
+      if (winner === 'w') return 'Brancas venceram por xeque mate'
+      return 'Pretas venceram por xeque mate'
     }
 
-    if (game.isDraw()) {
+    if (game.isDraw() || resultReason === 'draw') {
       return 'Empate'
     }
 
@@ -338,7 +363,7 @@ export default function useChessGame() {
 
     const activePlayer = game.turn() === 'w' ? whitePlayerName : blackPlayerName
     return `Vez de ${activePlayer}`
-  }, [game, winnerByTime, whitePlayerName, blackPlayerName])
+  }, [game, winnerByTime, whitePlayerName, blackPlayerName, resultReason])
 
   const boardRows = useMemo(() => {
     const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
@@ -390,6 +415,7 @@ export default function useChessGame() {
     timerMinutes,
     whitePlayerName,
     blackPlayerName,
+    resultReason,
     setAiThinking,
     setIsFlipped,
     setAutoFlip,
@@ -400,5 +426,6 @@ export default function useChessGame() {
     resign,
     rematch,
     formatTime,
+    getLegalMoves,
   }
 }

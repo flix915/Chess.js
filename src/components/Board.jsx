@@ -3,12 +3,12 @@ import useChessGame from '../hooks/useChessGame'
 import useStockfishAI from '../hooks/useStockfishAI'
 
 const pieceSymbols = {
-  wp: '♙',
-  wr: '♖',
-  wn: '♘',
-  wb: '♗',
-  wq: '♕',
-  wk: '♔',
+  wp: '♟',
+  wr: '♜',
+  wn: '♞',
+  wb: '♝',
+  wq: '♛',
+  wk: '♚',
   bp: '♟',
   br: '♜',
   bn: '♞',
@@ -46,12 +46,64 @@ export default function Board() {
     setAutoFlip,
     startGame,
     handleSquareClick,
+    getLegalMoves,
     makeEngineMove,
     undoLastMove,
     resign,
     rematch,
     formatTime,
   } = chessGame
+
+  const [promotionOptions, setPromotionOptions] = useState([])
+  const [promotionTarget, setPromotionTarget] = useState(null)
+
+  const promotionLabels = {
+    q: 'Dama',
+    r: 'Torre',
+    b: 'Bispo',
+    n: 'Cavalo',
+  }
+
+  const clearPromotion = () => {
+    setPromotionOptions([])
+    setPromotionTarget(null)
+  }
+
+  const choosePromotion = (promotion) => {
+    if (!promotionTarget) return
+    handleSquareClick(promotionTarget, promotion)
+    clearPromotion()
+  }
+
+  const handleBoardSquareClick = (square) => {
+    if (!selectedSquare) {
+      handleSquareClick(square)
+      return
+    }
+
+    if (selectedSquare === square) {
+      handleSquareClick(square)
+      return
+    }
+
+    const moves = getLegalMoves(selectedSquare)
+    const candidates = moves.filter((move) => move.to === square)
+    const promotionCards = [...new Set(candidates.filter((move) => move.promotion).map((move) => move.promotion))]
+
+    if (promotionCards.length > 0) {
+      setPromotionOptions(promotionCards)
+      setPromotionTarget(square)
+      return
+    }
+
+    if (candidates.length === 1) {
+      const promotion = candidates[0].promotion || 'q'
+      handleSquareClick(square, promotion)
+      return
+    }
+
+    handleSquareClick(square)
+  }
 
   // Setup screen local states
   const [setupGameMode, setSetupGameMode] = useState('ai') // 'ai' | 'local'
@@ -264,7 +316,7 @@ export default function Board() {
                           className={`square ${isDark ? 'dark' : 'light'} ${
                             isSelected ? 'selected' : ''
                           } ${isLegal ? 'legal' : ''}`}
-                          onClick={() => handleSquareClick(cell.square)}
+                          onClick={() => handleBoardSquareClick(cell.square)}
                         >
                           <span className="square-label">{cell.square}</span>
                           <span className={`piece ${cell.piece?.color || ''}`}>
@@ -277,6 +329,27 @@ export default function Board() {
                 ))}
               </div>
             </section>
+
+            {promotionOptions.length > 0 && (
+              <div className="promotion-panel">
+                <p>Escolha promoção para o peão</p>
+                <div className="promotion-buttons">
+                  {promotionOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      className="promotion-option"
+                      onClick={() => choosePromotion(option)}
+                    >
+                      {promotionLabels[option]}
+                    </button>
+                  ))}
+                  <button type="button" className="promotion-cancel" onClick={clearPromotion}>
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
 
             <section className="info-panel">
               <div className="score-card">
