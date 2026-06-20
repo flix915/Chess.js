@@ -1,6 +1,6 @@
 import Board from '../components/Board'
 
-export default function Game() {
+export default function Game({ user }) {
   return (
     <div className="game-page">
       <div className="game-header">
@@ -14,7 +14,7 @@ export default function Game() {
           </p>
         </div>
       </div>
-      <Board />
+      <Board user={user} />
     </div>
   )
 }

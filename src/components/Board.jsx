@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import useChessGame from '../hooks/useChessGame'
 import useStockfishAI from '../hooks/useStockfishAI'
+import { supabase } from '../supabase/config'
+import { saveGameResult } from '../services/dbService'
+import ChessPiece from './ChessPiece'
 
 const pieceSymbols = {
   wp: '♟',
@@ -17,7 +20,7 @@ const pieceSymbols = {
   bk: '♚',
 }
 
-export default function Board() {
+export default function Board({ user }) {
   const chessGame = useChessGame()
 
   const {
@@ -53,6 +56,7 @@ export default function Board() {
     rematch,
     formatTime,
   } = chessGame
+
 
   const [promotionOptions, setPromotionOptions] = useState([])
   const [promotionTarget, setPromotionTarget] = useState(null)
@@ -146,6 +150,48 @@ export default function Board() {
     }
   }, [])
 
+
+  // Salvar resultado automaticamente ao fim do jogo
+  const savedRef = useRef(null)
+  useEffect(() => {
+    if (gameStarted && isGameOver && user && savedRef.current !== fen) {
+      savedRef.current = fen
+      
+      const pgnMoves = history.map((m, idx) => {
+        return m.color === 'w' ? `${Math.ceil((idx + 1) / 2)}. ${m.san}` : m.san
+      }).join(' ')
+      
+      let finalResult = 'draw'
+      if (chessGame.winnerByTime) {
+        finalResult = chessGame.winnerByTime === 'w' ? 'win' : 'loss'
+      } else if (status.toLowerCase().includes('brancas venceram')) {
+        finalResult = 'win'
+      } else if (status.toLowerCase().includes('pretas venceram')) {
+        finalResult = 'loss'
+      }
+
+      const opponent = gameMode === 'ai' ? `Stockfish (Nivel ${aiRating})` : blackPlayerName
+
+      saveGameResult(user.id, {
+        result: finalResult,
+        aiRating: gameMode === 'ai' ? aiRating : null,
+        playerScore: whiteScore,
+        aiScore: blackScore,
+        matchPoints: matchPoints,
+        moves: history.map(m => m.san),
+        finalFen: fen,
+        opponentName: opponent,
+        isOnline: false,
+        pgn: pgnMoves,
+        durationSeconds: Math.max(0, (timerMinutes * 60) - whiteTime)
+      }).then(() => {
+        console.log('Partida local salva no banco de dados!')
+      }).catch(err => {
+        console.error('Erro ao salvar partida:', err)
+      })
+    }
+  }, [gameStarted, isGameOver, user, fen, history, gameMode, aiRating, whiteScore, blackScore, matchPoints, status, timerMinutes, whiteTime, blackPlayerName, chessGame.winnerByTime])
+
   const toggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement && boardRef.current) {
@@ -176,6 +222,47 @@ export default function Board() {
       return null
     }
     return pieceSymbols[`${piece.color}${piece.type}`] || null
+  }
+
+  // Calculate visual layout for Chess.com style promotion overlay
+  let promotionOverlay = null
+  if (promotionOptions.length > 0 && promotionTarget) {
+    const fileIndex = promotionTarget.charCodeAt(0) - 97
+    const rank = parseInt(promotionTarget[1], 10)
+    const visualCol = isFlipped ? 7 - fileIndex : fileIndex
+    const visualRow = isFlipped ? rank - 1 : 8 - rank
+    
+    // Ordered options to match chess.com
+    const orderedOptions = ['q', 'n', 'r', 'b'].filter(opt => promotionOptions.includes(opt))
+    const promotionColor = turn
+    
+    promotionOverlay = (
+      <div 
+        className={`promotion-overlay ${visualRow === 0 ? 'top-row' : 'bottom-row'}`}
+        style={{ gridColumn: visualCol + 1 }}
+      >
+        {orderedOptions.map((option) => (
+          <button
+            key={option}
+            type="button"
+            className="promotion-overlay-btn"
+            onClick={() => choosePromotion(option)}
+          >
+            <span className={`piece ${promotionColor}`}>
+              {pieceSymbols[`${promotionColor}${option}`]}
+            </span>
+          </button>
+        ))}
+        <button 
+          type="button" 
+          className="promotion-overlay-btn cancel-btn" 
+          onClick={clearPromotion}
+          title="Cancelar"
+        >
+          <span className="promotion-cancel-icon">×</span>
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -309,47 +396,63 @@ export default function Board() {
                       const isSelected = selectedSquare === cell.square
                       const isLegal = legalSquares.includes(cell.square)
 
+                      // Obter coordenadas visuais para animacao
+                      const fileIndex = cell.square.charCodeAt(0) - 97
+                      const rankNum = parseInt(cell.square[1], 10)
+                      const visualCol = isFlipped ? 7 - fileIndex : fileIndex
+                      const visualRow = isFlipped ? rankNum - 1 : 8 - rankNum
+
+                      // Verificar se e a peca que se moveu por ultimo
+                      const lastMove = history[history.length - 1]
+                      const isLastMoveTarget = lastMove && lastMove.to === cell.square
+                      let moveStyles = {}
+                      let moveClass = ''
+
+                      if (isLastMoveTarget) {
+                        const fromFile = lastMove.from.charCodeAt(0) - 97
+                        const fromRankNum = parseInt(lastMove.from[1], 10)
+                        const fromVisualCol = isFlipped ? 7 - fromFile : fromFile
+                        const fromVisualRow = isFlipped ? fromRankNum - 1 : 8 - fromRankNum
+
+                        const dx = (fromVisualCol - visualCol) * 100
+                        const dy = (fromVisualRow - visualRow) * 100
+                        moveStyles = {
+                          '--dx': `${dx}%`,
+                          '--dy': `${dy}%`,
+                        }
+                        moveClass = 'just-moved'
+                      }
+
+                      const isCapture = isLegal && cell.piece && cell.piece.color !== turn
+                      const pieceKey = cell.piece ? `${cell.square}-${cell.piece.color}${cell.piece.type}-${history.length}` : cell.square
+
                       return (
                         <button
                           key={cell.square}
                           type="button"
                           className={`square ${isDark ? 'dark' : 'light'} ${
                             isSelected ? 'selected' : ''
-                          } ${isLegal ? 'legal' : ''}`}
+                          } ${isLegal ? 'legal' : ''} ${isCapture ? 'legal-capture' : ''}`}
                           onClick={() => handleBoardSquareClick(cell.square)}
                         >
                           <span className="square-label">{cell.square}</span>
-                          <span className={`piece ${cell.piece?.color || ''}`}>
-                            {renderPiece(cell.piece)}
-                          </span>
+                          {cell.piece && (
+                            <ChessPiece
+                              key={pieceKey}
+                              color={cell.piece.color}
+                              type={cell.piece.type}
+                              className={moveClass}
+                              style={moveStyles}
+                            />
+                          )}
                         </button>
                       )
                     })}
                   </div>
                 ))}
+                {promotionOverlay}
               </div>
             </section>
-
-            {promotionOptions.length > 0 && (
-              <div className="promotion-panel">
-                <p>Escolha promoção para o peão</p>
-                <div className="promotion-buttons">
-                  {promotionOptions.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      className="promotion-option"
-                      onClick={() => choosePromotion(option)}
-                    >
-                      {promotionLabels[option]}
-                    </button>
-                  ))}
-                  <button type="button" className="promotion-cancel" onClick={clearPromotion}>
-                    Cancelar
-                  </button>
-                </div>
-              </div>
-            )}
 
             <section className="info-panel">
               <div className="score-card">

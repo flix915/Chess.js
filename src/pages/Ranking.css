@@ -1,0 +1,207 @@
+.ranking-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 10px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.ranking-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.ranking-header-icon {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.3));
+}
+
+.ranking-header h1 {
+  margin: 0;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.ranking-header .subtitle {
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.leaderboard-card {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.leaderboard-table th, 
+.leaderboard-table td {
+  padding: 18px 24px;
+}
+
+.leaderboard-table th {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.leaderboard-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background-color 0.15s ease;
+}
+
+.leaderboard-row:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.leaderboard-row:last-child {
+  border-bottom: none;
+}
+
+/* Specific ranks */
+.rank-1 { background-color: rgba(251, 191, 36, 0.03); }
+.rank-2 { background-color: rgba(226, 232, 240, 0.01); }
+.rank-3 { background-color: rgba(180, 83, 9, 0.01); }
+
+/* Medals */
+.medal-gold {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
+}
+.medal-silver {
+  color: #94a3b8;
+  filter: drop-shadow(0 0 4px rgba(148, 163, 184, 0.5));
+}
+.medal-bronze {
+  color: #b45309;
+  filter: drop-shadow(0 0 4px rgba(180, 83, 9, 0.5));
+}
+
+.rank-number {
+  font-size: 1rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.rank-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+/* Player Cell */
+.player-cell {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.player-avatar-wrapper {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+}
+
+.player-avatar-small {
+  width: 90% !important;
+  height: 90% !important;
+}
+
+.player-avatar-placeholder {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.player-name-text {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.star-icon {
+  margin-left: 4px;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.1); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* Rating Cell */
+.rating-cell strong {
+  font-size: 1.1rem;
+  color: #34d399;
+}
+
+.col-rank {
+  width: 10%;
+  text-align: center;
+}
+
+.col-player {
+  width: 70%;
+}
+
+.col-rating {
+  width: 20%;
+  text-align: right;
+}
+
+.ranking-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  font-size: 1.2rem;
+  color: #94a3b8;
+}
+
+.no-players {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 640px) {
+  .leaderboard-table th, 
+  .leaderboard-table td {
+    padding: 14px 16px;
+  }
+  
+  .player-name-text {
+    font-size: 0.95rem;
+  }
+}

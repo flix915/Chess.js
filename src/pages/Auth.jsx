@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser, registerUser } from '../services/authService';
+import { loginUser, registerUser, logoutUser } from '../services/authService';
 import { saveUserProfile } from '../services/dbService';
 import { User, Lock, Mail, ChevronRight, AlertCircle } from 'lucide-react';
 import './Auth.css';
@@ -20,6 +20,13 @@ export default function Auth() {
     setLoading(true);
 
     try {
+      // Wipar sessão ativa anterior se houver
+      try {
+        await logoutUser();
+      } catch (err) {
+        // Ignorar se não havia usuário logado
+      }
+
       if (isLogin) {
         await loginUser(email, password);
         navigate('/');
